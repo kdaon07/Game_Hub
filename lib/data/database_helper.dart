@@ -1,7 +1,8 @@
-import 'package:game_hub/model/Comment.dart';
-import 'package:game_hub/model/writing.dart';
+import 'dart:io';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:game_hub/model/Comment.dart';
+import 'package:game_hub/model/Writing.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -19,7 +20,12 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+    );
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -44,6 +50,26 @@ class DatabaseHelper {
     ''');
   }
 
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE comments (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          writingId INTEGER NOT NULL,
+          content TEXT NOT NULL,
+          FOREIGN KEY (writingId) REFERENCES article_profiles (id) ON DELETE CASCADE
+        );
+      ''');
+    }
+  }
+
+  // getTableNames 함수 추가
+  Future<List<String>> getTableNames() async {
+    final db = await instance.database;
+    final result = await db.rawQuery("SELECT name FROM sqlite_master WHERE type = 'table'");
+    return result.map((row) => row['name'] as String).toList();
+  }
+
   Future<void> insertArticle(Map<String, dynamic> article) async {
     final db = await instance.database;
     await db.insert('article_profiles', article);
@@ -65,7 +91,10 @@ class DatabaseHelper {
 
   Future<void> insertComment(Comment comment) async {
     final db = await instance.database;
-    await db.insert('comments', comment.toMap());
+    await db.insert('comments', {
+      'writingId': comment.writingId,
+      'content': comment.content,
+    });
   }
 
   Future<List<Comment>> getCommentsForWriting(int writingId) async {

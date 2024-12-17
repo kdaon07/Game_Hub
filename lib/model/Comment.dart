@@ -1,19 +1,25 @@
 class Comment {
-  final int? id;
-  final int writingId; // 댓글이 속한 게시글의 ID
-  final String content; // 댓글 내용
+  int? id; // id를 nullable로 설정
+  final int writingId;
+  final String content;
 
-  Comment({this.id, required this.writingId, required this.content});
+  Comment({
+    this.id, // 생성 시 id를 생략할 수 있도록 변경
+    required this.writingId,
+    required this.content,
+  });
 
+  // Map으로 변환
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      'id': id, // id가 없을 수 있기 때문에 nullable로 처리
       'writingId': writingId,
       'content': content,
     };
   }
 
-  static Comment fromMap(Map<String, dynamic> map) {
+  // Map에서 Comment 객체로 변환
+  factory Comment.fromMap(Map<String, dynamic> map) {
     return Comment(
       id: map['id'],
       writingId: map['writingId'],
